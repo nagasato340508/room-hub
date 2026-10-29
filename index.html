@@ -136,6 +136,9 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
 .btn.primary{background:var(--amber);color:#1a1206;font-weight:700}
 .btn:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .msg{font-size:13px;min-height:1.2em}
+.sheet label.check{flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;font-size:14px;color:var(--fg)}
+.sheet label.check input{width:20px;height:20px;accent-color:var(--amber)}
+.sheet label.check span{flex-basis:100%;font-size:12px;color:var(--dim);line-height:1.5}
 
 @media (orientation:portrait){
   .app{grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr}
@@ -193,6 +196,7 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
       <label style="flex:1">緯度<input id="placeLat" type="text" inputmode="decimal" placeholder="35.68" autocomplete="off"></label>
       <label style="flex:1">経度<input id="placeLon" type="text" inputmode="decimal" placeholder="139.77" autocomplete="off"></label>
     </div>
+    <label class="check"><input id="wakeOn" type="checkbox"> 「ジェミニ」の呼びかけで起動する<span>オフにすると左下の丸をタップして話します。オンのままだと、聞き直すたびにピコン音が鳴ることがあります。</span></label>
     <div class="msg" id="settingsMsg"></div>
     <div class="row">
       <button type="button" class="btn" id="testBtn">接続テスト</button>
@@ -217,6 +221,7 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
     if (q.get("gas")) { cfg.gas = q.get("gas"); cfg.token = q.get("token") || ""; saveCfg(); history.replaceState(null, "", location.pathname); }
   })();
   const linked = () => !!(cfg.gas && cfg.token);
+  const wakeMode = () => cfg.wake !== false;
   const hasPlace = () => Number.isFinite(cfg.lat) && Number.isFinite(cfg.lon);
   const placeName = () => cfg.place || "現在地";
 
@@ -355,6 +360,7 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
     $("status").textContent = text ?? msg ?? "";
     updateTalk();
     if (s === "awake") awakeTimer = setTimeout(() => { if (state === "awake") setState("idle"); }, 8000);
+    if (s === "idle") { if (wakeMode()) listen(); else mute(); }
   }
   let saidTimer = 0, saidOn = false;
   function showSaid(q, a) {
@@ -423,7 +429,7 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
     mute(); setState("thinking"); showSaid(q, "");
     if (Date.now() - lastTalk > 3 * 60 * 1000) chat = [];
     chat.push({ role: "user", text: q });
-    let answer;
+    let answer, detail = "";
     if (!linked()) answer = "まだAIの連携が設定されていません。右下の歯車から設定してください。";
     else {
       try {
@@ -431,11 +437,20 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
         const j = await r.json();
         if (j.error) throw new Error(j.error);
         answer = j.text;
-      } catch (e) { answer = "すみません、AIにつながりませんでした。"; console.error(e); }
+      } catch (e) { answer = "すみません、AIにつながりませんでした。"; detail = explain(e); console.error(e); }
     }
     chat.push({ role: "assistant", text: answer }); lastTalk = Date.now();
-    showSaid(q, answer);
+    showSaid(q, answer + (detail ? `（${detail}）` : ""));
     speak(answer);
+  }
+
+  function explain(e) {
+    const m = String((e && e.message) || e);
+    if (/token/i.test(m) && m.length < 10) return "合言葉が違います";
+    if (/GEMINI_API_KEY/.test(m)) return "Apps ScriptにGEMINI_API_KEYが設定されていません";
+    if (/JSON|Unexpected token|<!DOCTYPE/i.test(m)) return "Apps Scriptの返事が読めません。アクセスできるユーザーが「全員」か、新バージョンでデプロイしたか確認してください";
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return "Apps Scriptに届きませんでした";
+    return m.slice(0, 160);
   }
 
   let jaVoice = null;
@@ -453,8 +468,8 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
   }
   function afterSpeak() {
     if (state !== "speaking" && state !== "thinking") return;
-    setState("awake", "続けてどうぞ（呼びかけなしでOK）");
-    listen();
+    if (wakeMode()) { setState("awake", "続けてどうぞ（呼びかけなしでOK）"); listen(); }
+    else setState("idle");
   }
 
   /* ---------- 起動 ---------- */
@@ -471,27 +486,29 @@ body[data-state="error"] .orb{opacity:.8;background:#c96a5a}
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
     if ("speechSynthesis" in window) { const u = new SpeechSynthesisUtterance(""); speechSynthesis.speak(u); }
     if (!SR) { setState("error", "このブラウザは音声認識に対応していません。Chromeで開いてください"); return; }
-    makeRec(); setState("idle"); listen();
+    makeRec(); setState("idle");
   });
 
   $("orb").addEventListener("click", () => {
     if (state === "off") { $("startBtn").click(); return; }
     if (state === "speaking") { speechSynthesis.cancel(); return; }
-    if (state === "idle" || state === "error") { chime(); setState("awake"); listen(); }
+    if (state === "idle" || state === "error") { if (wakeMode()) chime(); setState("awake"); listen(); }
   });
 
   /* ---------- 設定画面 ---------- */
-  const openSettings = () => { $("gasUrl").value = cfg.gas || ""; $("gasToken").value = cfg.token || ""; $("placeName").value = cfg.place || ""; $("placeLat").value = hasPlace() ? cfg.lat : ""; $("placeLon").value = hasPlace() ? cfg.lon : ""; $("settingsMsg").textContent = ""; $("settings").hidden = false; };
+  const openSettings = () => { $("gasUrl").value = cfg.gas || ""; $("gasToken").value = cfg.token || ""; $("placeName").value = cfg.place || ""; $("placeLat").value = hasPlace() ? cfg.lat : ""; $("placeLon").value = hasPlace() ? cfg.lon : ""; $("wakeOn").checked = wakeMode(); $("settingsMsg").textContent = ""; $("settings").hidden = false; };
   $("gearBtn").addEventListener("click", openSettings);
   $("closeBtn").addEventListener("click", () => { $("settings").hidden = true; });
   $("settingsForm").addEventListener("submit", (ev) => {
     ev.preventDefault();
     cfg.gas = $("gasUrl").value.trim(); cfg.token = $("gasToken").value.trim();
     cfg.place = $("placeName").value.trim();
+    cfg.wake = $("wakeOn").checked;
     const la = parseFloat($("placeLat").value), lo = parseFloat($("placeLon").value);
     if (Number.isFinite(la) && Number.isFinite(lo)) { cfg.lat = la; cfg.lon = lo; } else { delete cfg.lat; delete cfg.lon; }
     saveCfg();
     $("settings").hidden = true; loadEvents(); loadWeather();
+    if (state === "idle") setState("idle");
   });
   $("testBtn").addEventListener("click", async () => {
     const url = $("gasUrl").value.trim(), tok = $("gasToken").value.trim(), m = $("settingsMsg");
