@@ -31,7 +31,8 @@ body{color:var(--fg);font-family:var(--text)}
 #colA{flex:none;display:flex;flex-direction:column}
 #colA>*{flex:none}
 #colA>*+*{margin-top:12px}
-#colB{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:12px}
+#colB{flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;margin-top:12px}
+#listIn,#todo{-webkit-transform-origin:0 0;transform-origin:0 0}
 
 .head{display:flex;align-items:flex-end;justify-content:space-between}
 .time{font-family:var(--num);font-weight:600;font-size:108px;line-height:.9;letter-spacing:-1px}
@@ -110,7 +111,7 @@ body{color:var(--fg);font-family:var(--text)}
 
 /* 横向き：左に時計・天気・予定・やること、右に提案。離れて読めるよう文字は大きめ */
 body.land #stage{width:1024px;height:768px;flex-direction:row;padding:24px 36px}
-body.land #colA{width:560px}
+body.land #colA{width:520px}
 body.land #colB{margin-top:0;margin-left:28px;padding-left:28px;border-left:1px solid var(--line)}
 body.land .time{font-size:124px}
 body.land .date .md{font-size:28px}
@@ -192,7 +193,7 @@ body.land .row.hito .main{font-size:27px}
 (function () {
   'use strict';
 
-  var BOARD_VERSION = '2026-10-31-film';
+  var BOARD_VERSION = '2026-11-01-fit';
   var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   function $(id) { return document.getElementById(id); }
@@ -426,7 +427,7 @@ body.land .row.hito .main{font-size:27px}
     // やること（期限の近い順に3つまで）
     var tasks = (board.tasks || []).slice(0, 3);
     var left = '<div class="lb">やること</div>';
-    if (!tasks.length) left += '<div class="empty">今日のやることはありません</div>';
+    if (!tasks.length) left += '<div class="empty">ありません</div>';
     tasks.forEach(function (t) {
       var due = '', hot = false;
       if (t.due) {
@@ -445,7 +446,7 @@ body.land .row.hito .main{font-size:27px}
     var items = (!night && board.daily && board.daily.items) || [];
     items.slice(0, 2).forEach(function (x) { right += '<div class="it"><span class="dot"></span><span class="tt">' + esc(x) + '</span></div>'; });
     var every = board.everyday || [];
-    if (every.length) right += '<div class="it daily"><span class="dot"></span><span class="tt">' + esc(every.join('・')) + '</span></div>';
+    every.forEach(function (x) { right += '<div class="it daily"><span class="dot"></span><span class="tt">' + esc(x) + '</span></div>'; });
 
     el.innerHTML = '<div class="col">' + left + '</div><div class="col">' + right + '</div>';
     el.hidden = false;
@@ -497,20 +498,28 @@ body.land .row.hito .main{font-size:27px}
     autoFit();
   }
 
-  /* ---------- 収まらないときは文字を少しずつ小さくする（文は切らない） ---------- */
-  function shrinkUntil(el, limitEl, minZoom) {
-    if (!el || el.hidden) return;
-    var z = 1;
-    el.style.zoom = 1;
-    while (z > minZoom && el.getBoundingClientRect().bottom > limitEl.getBoundingClientRect().bottom - 2) {
-      z = Math.round((z - 0.04) * 100) / 100;
-      el.style.zoom = z;
+  /* ---------- 収まらないときは文字を少しずつ小さくする（文は切らない） ----------
+   * zoom と getBoundingClientRect は iOS 12 で測り方がずれるので使わない。
+   * 変形の影響を受けない offsetHeight で測り、transform で縮める。 */
+  function shrinkTo(el, avail, minScale) {
+    if (!el) return;
+    el.style.webkitTransform = el.style.transform = '';
+    el.style.width = '';
+    if (el.hidden || avail <= 0) return;
+    var base = el.offsetWidth, z = 1;
+    while (z > minScale && el.offsetHeight * z > avail) {
+      z = Math.round((z - 0.03) * 100) / 100;
+      el.style.width = (base / z) + 'px';
+      el.style.webkitTransform = el.style.transform = 'scale(' + z + ')';
     }
   }
   function autoFit() {
-    shrinkUntil($('listIn'), $('list'), 0.6);
-    if (document.body.className === 'land') shrinkUntil($('todo'), $('colA'), 0.7);
-    else $('todo').style.zoom = 1;
+    var list = $('list'), listIn = $('listIn'), todo = $('todo'), st = $('stage');
+    shrinkTo(listIn, list.offsetTop + list.offsetHeight - listIn.offsetTop - 2, 0.6);
+    if (document.body.className === 'land') {
+      var padB = parseFloat(getComputedStyle(st).paddingBottom) || 0;
+      shrinkTo(todo, st.clientHeight - padB - todo.offsetTop - 2, 0.7);
+    } else shrinkTo(todo, 99999, 1);
   }
 
   /* ---------- 設定 ---------- */
