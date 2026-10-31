@@ -298,15 +298,25 @@ body{color:var(--fg);font-family:var(--text)}
   /* ---------- 予定・南武線・持ちもの・提案（Apps Script） ---------- */
   function linked() { return !!(cfg.gas && cfg.token); }
 
+  var boardErr = '';
   function loadBoard() {
     if (!linked()) { renderBoard(); return; }
     fetch(cfg.gas + '?action=board&token=' + encodeURIComponent(cfg.token))
-      .then(function (r) { return r.json(); })
-      .then(function (j) {
-        if (j.error) throw new Error(j.error);
-        board = j; cache.board = j; save(CACHE_KEY, cache); renderBoard();
+      .then(function (r) {
+        return r.text().then(function (t) {
+          try { return JSON.parse(t); } catch (e) { throw new Error('Apps Scriptの返事が読めません（URLか、アクセスできるユーザーが「全員」か確認）'); }
+        });
       })
-      .catch(function () { renderBoard(); });
+      .then(function (j) {
+        if (j.error) throw new Error(j.error === 'token' ? '合言葉が違います' : j.error);
+        if (!j.events) throw new Error('古い版のApps Scriptが動いています（新バージョンでデプロイしてください）');
+        board = j; boardErr = ''; cache.board = j; save(CACHE_KEY, cache); renderBoard();
+      })
+      .catch(function (e) {
+        boardErr = (e && e.message) || 'つながりませんでした';
+        if (/Failed to fetch|Load failed|NetworkError|network/i.test(boardErr)) boardErr = 'Apps Scriptにつながりませんでした';
+        renderBoard();
+      });
   }
 
   function renderBoard() { renderTrain(); renderSched(); renderItems(); renderList(); }
@@ -343,7 +353,7 @@ body{color:var(--fg);font-family:var(--text)}
   function renderSched() {
     var el = $('sched');
     if (!linked()) { el.innerHTML = '<div class="none">日付を3回タップして、Apps Scriptとつないでください</div>'; return; }
-    if (!board) { el.innerHTML = '<div class="none">予定を読み込み中</div>'; return; }
+    if (!board) { el.innerHTML = '<div class="none">' + (boardErr ? '予定を取得できません：' + esc(boardErr) : '予定を読み込み中') + '</div>'; return; }
     var now = new Date(), list = evs();
     var today = list.filter(function (e) { return e.e > now && e.s.toDateString() === now.toDateString() || (e.allDay && e.s <= now && e.e > now); });
     var label = '';
