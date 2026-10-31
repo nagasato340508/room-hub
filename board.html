@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="玄関ボード">
+<meta name="theme-color" content="#0b0f0e">
+<title>玄関ボード</title>
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* iPad mini 3（縦 768×1024）に合わせた1画面。古いSafariでも崩れないよう、flexのgapは使わずmarginで間をあける */
+:root{
+  --bg:#0B0F0E; --card:#131918; --line:#1F2725; --chip:#2A3431;
+  --fg:#E1E7E5; --sub:#8E9A96; --blue:#86A9EE; --amber:#E3A863;
+  --num:"Barlow Condensed","Roboto Condensed",sans-serif;
+  --text:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden;-webkit-text-size-adjust:100%;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+body{color:var(--fg);font-family:var(--text)}
+[hidden]{display:none!important}
+
+#stage{position:absolute;left:0;top:0;width:768px;height:1024px;overflow:hidden;padding:28px 40px;display:flex;flex-direction:column;-webkit-transform-origin:0 0;transform-origin:0 0;background:var(--bg)}
+#stage>*{flex:none}
+#stage>*+*{margin-top:12px}
+
+.head{display:flex;align-items:flex-end;justify-content:space-between}
+.time{font-family:var(--num);font-weight:600;font-size:108px;line-height:.9;letter-spacing:-1px}
+.date{text-align:right;padding-bottom:4px}
+.date .md{font-size:24px;color:var(--sub)}
+.date .wd{font-size:32px;font-weight:700;margin-top:2px}
+
+.umb{background:var(--card);border-radius:20px;padding:12px 22px;display:flex;align-items:center}
+.umb .ico{width:52px;height:52px;flex:none;margin-right:20px}
+.umb .ico svg{width:52px;height:52px}
+.umb .t{font-size:40px;font-weight:700;line-height:1.15}
+.umb .s{font-size:24px;color:var(--sub);margin-top:2px}
+
+.hours{display:-webkit-box;display:flex}
+.hour{flex:1 1 0;display:flex;align-items:center;justify-content:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.hour+.hour{margin-left:10px}
+.hour.rain{border-bottom:2px solid var(--blue)}
+.hour .h{font-size:20px;color:var(--sub)}
+.hour svg{width:30px;height:30px;margin:0 8px}
+.hour .v{font-family:var(--num);font-size:30px;font-weight:500}
+
+.train{display:flex;align-items:center;font-size:24px}
+.train svg{width:24px;height:24px;margin-right:10px}
+.train .n{color:var(--sub);margin-right:10px}
+.train .st{font-weight:700}
+.train.bad .st{color:var(--amber)}
+
+.sched .ev{display:flex;align-items:baseline;font-size:28px;white-space:nowrap}
+.sched .ev+.ev{margin-top:6px}
+.sched .when{font-family:var(--num);font-weight:500;font-size:32px;width:78px;flex:none;color:var(--sub);margin-right:18px}
+.sched .ttl{overflow:hidden;text-overflow:ellipsis;min-width:0}
+.sched .dep{font-size:20px;color:var(--sub);margin-left:18px;flex:none}
+.sched .tag{font-size:20px;color:var(--sub);margin-right:12px;flex:none}
+.sched .none{font-size:24px;color:var(--sub)}
+
+.items{display:flex;align-items:center;flex-wrap:wrap}
+.items .lb{font-size:20px;color:var(--sub);margin-right:14px}
+.chip{font-size:24px;padding:6px 14px;border-radius:999px;border:1px solid var(--chip);margin:0 10px 0 0}
+.chip.on{background:var(--blue);border-color:var(--blue);color:var(--bg);font-weight:700}
+
+.list{border-top:1px solid var(--line);padding-top:12px;flex:1 1 auto!important;min-height:0;overflow:hidden}
+.row{display:flex;align-items:center}
+.row+.row{margin-top:10px}
+.row .ico{width:52px;height:52px;border-radius:14px;background:var(--card);flex:none;display:flex;align-items:center;justify-content:center;margin-right:18px}
+.row .ico svg{width:30px;height:30px}
+.row .txt{flex:1 1 auto;min-width:0}
+.row .main{font-size:28px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sub{font-size:21px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .sale{display:inline-block;vertical-align:middle;font-size:18px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--amber);color:var(--bg);margin-left:12px;position:relative;top:-2px}
+.row.hito .main{color:var(--blue)}
+.wait{font-size:22px;color:var(--sub);line-height:1.6}
+
+#dim{position:absolute;left:0;top:0;right:0;bottom:0;background:#000;opacity:0;pointer-events:none;-webkit-transition:opacity 2s;transition:opacity 2s;margin:0!important}
+#dim.on{opacity:.55}
+
+#settings{position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(11,15,14,.96);display:flex;align-items:center;justify-content:center;margin:0!important;z-index:5}
+.sheet{width:600px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px}
+.sheet h2{margin:0 0 8px;font-size:26px}
+.sheet p{margin:0 0 16px;font-size:18px;color:var(--sub);line-height:1.6}
+.sheet label{display:block;font-size:18px;color:var(--sub);margin-top:14px}
+.sheet input{display:block;width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--chip);color:var(--fg);font:inherit;font-size:20px;padding:10px 12px;border-radius:8px;-webkit-appearance:none}
+.sheet .two{display:flex}
+.sheet .two label{flex:1 1 0}
+.sheet .two label+label{margin-left:12px}
+.sheet .btns{display:flex;justify-content:flex-end;margin-top:22px}
+.sheet button{font:inherit;font-size:20px;padding:12px 22px;border-radius:10px;border:0;background:var(--chip);color:var(--fg);margin-left:10px;-webkit-appearance:none}
+.sheet button.primary{background:var(--blue);color:var(--bg);font-weight:700}
+.sheet .msg{font-size:18px;min-height:1.4em;margin-top:14px;color:var(--sub)}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="head">
+    <div class="time" id="time">--:--</div>
+    <div class="date" id="dateBox"><div class="md" id="md"></div><div class="wd" id="wd"></div></div>
+  </div>
+
+  <div class="umb">
+    <div class="ico" id="umbIco"></div>
+    <div><div class="t" id="umbT">天気を読み込み中</div><div class="s" id="umbS"></div></div>
+  </div>
+
+  <div class="hours" id="hours"></div>
+  <div class="train" id="train" hidden></div>
+  <div class="sched" id="sched"></div>
+  <div class="items" id="items" hidden></div>
+  <div class="list" id="list"></div>
+
+  <div id="dim"></div>
+
+  <div id="settings" hidden>
+    <form class="sheet" id="form">
+      <h2>玄関ボードの設定</h2>
+      <p>日付のところを3回続けてタップすると、いつでもこの画面を開けます。入れた内容はこの端末にだけ保存されます。</p>
+      <label>Apps ScriptのウェブアプリのURL<input id="fGas" type="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec"></label>
+      <label>合言葉（TOKEN）<input id="fTok" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <div class="two">
+        <label>緯度<input id="fLat" type="text" inputmode="decimal" placeholder="35.68"></label>
+        <label>経度<input id="fLon" type="text" inputmode="decimal" placeholder="139.77"></label>
+      </div>
+      <div class="msg" id="fMsg"></div>
+      <div class="btns">
+        <button type="button" id="fTest">接続テスト</button>
+        <button type="button" id="fClose">閉じる</button>
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
+  var WD = ['日', '月', '火', '水', '木', '金', '土'];
+  function $(id) { return document.getElementById(id); }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function hm(d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function load(key) { try { return JSON.parse(localStorage.getItem(key)) || null; } catch (e) { return null; } }
+  function save(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) {} }
+
+  var cfg = load(CFG_KEY) || {};
+  var cache = load(CACHE_KEY) || {};
+  var wx = cache.wx || null, board = cache.board || null;
+
+  /* ---------- 画面を端末の大きさに合わせる ---------- */
+  function fit() {
+    var w = window.innerWidth, h = window.innerHeight;
+    var s = Math.min(w / 768, h / 1024);
+    var t = 'translate(' + ((w - 768 * s) / 2) + 'px,' + ((h - 1024 * s) / 2) + 'px) scale(' + s + ')';
+    $('stage').style.webkitTransform = t;
+    $('stage').style.transform = t;
+  }
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', function () { setTimeout(fit, 300); });
+  fit();
+
+  /* ---------- アイコン ---------- */
+  var S = 'viewBox="0 0 24 24" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"';
+  var CLOUD = '<path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 9.6 4.2 4.2 0 0 0 7 18z"></path>';
+  var ICON = {
+    umbrella: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M3 12a9 9 0 0 1 18 0z"></path><path d="M12 12v6.5a2 2 0 0 1-4 0"></path><path d="M12 3V2"></path></svg>'; },
+    sun: function (c) { return '<svg ' + S + ' stroke="' + c + '"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"></path></svg>'; },
+    moon: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M15.5 4.5a6.5 6.5 0 1 0 4 11.6A7 7 0 0 1 15.5 4.5z"></path></svg>'; },
+    cloud: function (c) { return '<svg ' + S + ' stroke="' + c + '">' + CLOUD + '</svg>'; },
+    rain: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M7 15h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 6.6 4.2 4.2 0 0 0 7 15z"></path><path d="M8 18l-1 2.5M12 18l-1 2.5M16 18l-1 2.5"></path></svg>'; },
+    snow: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M7 15h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 6.6 4.2 4.2 0 0 0 7 15z"></path><path d="M8 19h.01M12 21h.01M16 19h.01" stroke-width="2.6"></path></svg>'; },
+    check: function (c) { return '<svg viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.6 2.5L16 9.5"></path></svg>'; },
+    warn: function (c) { return '<svg viewBox="0 0 24 24" fill="none" stroke="' + c + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"></path><path d="M12 10v4.5M12 17.5h.01"></path></svg>'; },
+    bulb: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M9 18h6"></path><path d="M10 21h4"></path><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"></path></svg>'; },
+    word: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M2.5 19L7.5 5l5 14"></path><path d="M4.3 14h6.4"></path><circle cx="17.5" cy="16" r="3"></circle><path d="M20.5 12.5V19"></path></svg>'; },
+    film: function (c) { return '<svg ' + S + ' stroke="' + c + '"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 9h18M7 5v4M12 5v4M17 5v4"></path></svg>'; },
+    book: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M12 6c-2-1.5-5-2-8-1.5V19c3-.5 6 0 8 1.5"></path><path d="M12 6c2-1.5 5-2 8-1.5V19c-3-.5-6 0-8 1.5"></path><path d="M12 6v14.5"></path></svg>'; },
+    bubble: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M4 5h16v11H10l-5 4v-4H4z"></path></svg>'; }
+  };
+  var C = { blue: '#86A9EE', amber: '#E3A863', sub: '#8E9A96' };
+
+  function kind(code) {
+    if (code <= 1) return 'sun';
+    if (code <= 3 || code === 45 || code === 48) return 'cloud';
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 'snow';
+    return 'rain';
+  }
+
+  /* ---------- 時計 ---------- */
+  function renderClock() {
+    var d = new Date();
+    $('time').textContent = hm(d);
+    $('md').textContent = (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    $('wd').textContent = WD[d.getDay()] + '曜日';
+    var h = d.getHours();
+    $('dim').className = (h >= 23 || h < 6) ? 'on' : '';
+  }
+
+  /* ---------- 天気 ---------- */
+  function hasPlace() { return isFinite(parseFloat(cfg.lat)) && isFinite(parseFloat(cfg.lon)); }
+
+  function loadWeather() {
+    if (!hasPlace()) { renderWeather(); return; }
+    var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + parseFloat(cfg.lat).toFixed(2) +
+      '&longitude=' + parseFloat(cfg.lon).toFixed(2) +
+      '&hourly=temperature_2m,precipitation_probability,weather_code' +
+      '&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo&forecast_days=2';
+    fetch(url).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { wx = j; cache.wx = j; save(CACHE_KEY, cache); renderWeather(); })
+      .catch(function () { renderWeather(); });
+  }
+
+  function hourIndex(date) {
+    var key = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours());
+    var t = wx.hourly.time;
+    for (var i = 0; i < t.length; i++) if (t[i].slice(0, 13) === key) return i;
+    return -1;
+  }
+
+  var rainLevel = 0; // 0: いらない 1: 折りたたみ 2: 傘
+
+  function renderWeather() {
+    if (!hasPlace()) {
+      $('umbIco').innerHTML = ICON.umbrella(C.sub);
+      $('umbT').textContent = '場所が未設定です';
+      $('umbS').textContent = '日付を3回タップして緯度・経度を入れてください';
+      $('hours').innerHTML = '';
+      rainLevel = 0;
+      return;
+    }
+    if (!wx || !wx.hourly) return;
+    var now = new Date();
+    var night = now.getHours() >= 19;
+    var day = night ? 1 : 0;
+    var base = new Date(now.getFullYear(), now.getMonth(), now.getDate() + day);
+    var from = night ? 7 : now.getHours(), to = 22;
+    var maxP = 0, firstRain = -1;
+    for (var h = from; h <= to; h++) {
+      var d = new Date(base.getFullYear(), base.getMonth(), base.getDate(), h);
+      var i = hourIndex(d);
+      if (i < 0) continue;
+      var p = wx.hourly.precipitation_probability[i] || 0;
+      if (p > maxP) maxP = p;
+      if (p >= 50 && firstRain < 0) firstRain = h;
+    }
+    var hi = Math.round(wx.daily.temperature_2m_max[day]), lo = Math.round(wx.daily.temperature_2m_min[day]);
+    var pre = night ? '明日は' : '';
+    var temps = '最高 ' + hi + '° / 最低 ' + lo + '°';
+    rainLevel = maxP >= 50 ? 2 : maxP >= 30 ? 1 : 0;
+    if (rainLevel === 2) {
+      $('umbIco').innerHTML = ICON.umbrella(C.blue);
+      $('umbT').textContent = pre + '傘を持っていく';
+      $('umbT').style.color = C.blue;
+      $('umbS').textContent = (firstRain === from && !night ? 'いま雨の予報' : firstRain + '時ごろから雨') + '　' + temps;
+    } else if (rainLevel === 1) {
+      $('umbIco').innerHTML = ICON.umbrella(C.blue);
+      $('umbT').textContent = pre + '折りたたみ傘があると安心';
+      $('umbT').style.color = C.blue;
+      $('umbS').textContent = '降水確率 最大' + maxP + '%　' + temps;
+    } else {
+      $('umbIco').innerHTML = ICON.sun(C.amber);
+      $('umbT').textContent = pre + '傘はいらない';
+      $('umbT').style.color = '';
+      $('umbS').textContent = '降水確率 最大' + maxP + '%　' + temps;
+    }
+
+    var html = '', start = Math.ceil((now.getHours() + 1) / 3) * 3;
+    for (var k = 0; k < 4; k++) {
+      var at = new Date(now.getFullYear(), now.getMonth(), now.getDate(), start + k * 3);
+      var j = hourIndex(at);
+      if (j < 0) continue;
+      var pr = wx.hourly.precipitation_probability[j] || 0;
+      var code = wx.hourly.weather_code[j];
+      var kd = kind(code), hh = at.getHours();
+      if (kd === 'sun' && (hh >= 18 || hh < 6)) kd = 'moon';
+      var color = (kd === 'rain' || kd === 'snow') ? C.blue : (kd === 'sun' ? C.amber : C.sub);
+      var rainy = pr >= 30;
+      html += '<div class="hour' + (rainy ? ' rain' : '') + '"><span class="h">' + hh + '時</span>' +
+        ICON[kd](color) + '<span class="v">' + (rainy ? pr + '%' : Math.round(wx.hourly.temperature_2m[j]) + '°') + '</span></div>';
+    }
+    $('hours').innerHTML = html;
+    renderItems();
+  }
+
+  /* ---------- 予定・南武線・持ちもの・提案（Apps Script） ---------- */
+  function linked() { return !!(cfg.gas && cfg.token); }
+
+  function loadBoard() {
+    if (!linked()) { renderBoard(); return; }
+    fetch(cfg.gas + '?action=board&token=' + encodeURIComponent(cfg.token))
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.error) throw new Error(j.error);
+        board = j; cache.board = j; save(CACHE_KEY, cache); renderBoard();
+      })
+      .catch(function () { renderBoard(); });
+  }
+
+  function renderBoard() { renderTrain(); renderSched(); renderItems(); renderList(); }
+
+  function renderTrain() {
+    var st = board && board.train && board.train.status;
+    var el = $('train');
+    if (!st) { el.hidden = true; return; }
+    var ok = st === '平常運転';
+    el.className = 'train' + (ok ? '' : ' bad');
+    el.innerHTML = (ok ? ICON.check(C.blue) : ICON.warn(C.amber)) + '<span class="n">南武線</span><span class="st">' + esc(st) + '</span>';
+    el.hidden = false;
+  }
+
+  function evs() {
+    if (!board || !board.events) return [];
+    return board.events.map(function (e) {
+      return { title: e.title || '（無題）', s: new Date(e.start), e: new Date(e.end), allDay: !!e.allDay };
+    });
+  }
+
+  function depart(e) {
+    if (e.allDay || !board || !board.travel) return '';
+    var t = board.travel;
+    for (var k in t) {
+      if (Object.prototype.hasOwnProperty.call(t, k) && e.title.indexOf(k) >= 0) {
+        var d = new Date(e.s.getTime() - Number(t[k]) * 60000);
+        if (d.getTime() > Date.now() - 5 * 60000) return hm(d) + 'ごろ出発';
+      }
+    }
+    return '';
+  }
+
+  function renderSched() {
+    var el = $('sched');
+    if (!linked()) { el.innerHTML = '<div class="none">日付を3回タップして、Apps Scriptとつないでください</div>'; return; }
+    if (!board) { el.innerHTML = '<div class="none">予定を読み込み中</div>'; return; }
+    var now = new Date(), list = evs();
+    var today = list.filter(function (e) { return e.e > now && e.s.toDateString() === now.toDateString() || (e.allDay && e.s <= now && e.e > now); });
+    var label = '';
+    if (!today.length && now.getHours() >= 17) {
+      var tm = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+      today = list.filter(function (e) { return e.s.toDateString() === tm.toDateString(); });
+      label = '明日';
+    }
+    if (!today.length) { el.innerHTML = '<div class="none">' + (label ? '明日の予定はありません' : '今日の予定はありません') + '</div>'; return; }
+    el.innerHTML = today.slice(0, 3).map(function (e) {
+      var dep = label ? '' : depart(e);
+      return '<div class="ev">' + (label ? '<span class="tag">' + label + '</span>' : '') +
+        '<span class="when">' + (e.allDay ? '終日' : (e.s <= now ? '進行中' : hm(e.s))) + '</span>' +
+        '<span class="ttl">' + esc(e.title) + '</span>' + (dep ? '<span class="dep">' + dep + '</span>' : '') + '</div>';
+    }).join('');
+  }
+
+  function renderItems() {
+    var el = $('items');
+    var chips = [];
+    if (rainLevel === 2) chips.push('<span class="chip on">傘</span>');
+    else if (rainLevel === 1) chips.push('<span class="chip on">折りたたみ傘</span>');
+    var night = new Date().getHours() >= 19;
+    var items = (!night && board && board.daily && board.daily.items) || [];
+    items.forEach(function (x) { chips.push('<span class="chip">' + esc(x) + '</span>'); });
+    if (!chips.length) { el.hidden = true; return; }
+    el.innerHTML = '<span class="lb">' + (night ? '明日の持ちもの' : '持ちもの') + '</span>' + chips.join('');
+    el.hidden = false;
+  }
+
+  function row(icon, main, sub, extra, cls) {
+    return '<div class="row' + (cls ? ' ' + cls : '') + '"><div class="ico">' + icon + '</div><div class="txt">' +
+      '<div class="main">' + main + (extra || '') + '</div>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div></div>';
+  }
+
+  function pickHitokoto(pool) {
+    if (!pool || !pool.length) return null;
+    var h = new Date().getHours();
+    var night = h >= 20 || h < 4;
+    var cand = pool.filter(function (p) { return night ? true : !p.night; });
+    if (night) {
+      var n = pool.filter(function (p) { return p.night; });
+      if (n.length) cand = n.concat(cand);
+    }
+    if (!cand.length) cand = pool;
+    var slot = Math.floor(Date.now() / (20 * 60 * 1000)); // 20分ごとに入れ替え
+    return cand[slot % cand.length];
+  }
+
+  function renderList() {
+    var el = $('list');
+    var d = board && board.daily;
+    if (!d) {
+      el.innerHTML = '<div class="wait">' + (linked() ? '今日の雑学やおすすめを準備中です。数分後に出ます。' : '') + '</div>';
+      return;
+    }
+    var html = '';
+    if (d.trivia && d.trivia.title) html += row(ICON.bulb(C.sub), esc(d.trivia.title), esc(d.trivia.detail));
+    if (d.word && d.word.word) html += row(ICON.word(C.sub), esc(d.word.word) + '　' + esc(d.word.meaning), esc(d.word.detail));
+    if (d.film && d.film.title) {
+      var fs = [d.film.director, d.film.reason].filter(Boolean).join('　') + (d.film.prime ? '　Prime Video' : '');
+      html += row(ICON.film(C.sub), '今夜の1本『' + esc(d.film.title) + '』', esc(fs));
+    }
+    if (d.book && d.book.title) {
+      var bm = (d.book.author ? esc(d.book.author) : '') + '『' + esc(d.book.title) + '』';
+      var sale = d.book.sale ? '<span class="sale">Kindleセール' + (d.book.salePrice ? ' ' + esc(d.book.salePrice) : '') + '</span>' : '';
+      html += row(ICON.book(C.amber), bm, esc([d.book.summary, d.book.label].filter(Boolean).join('　')), sale);
+    }
+    var hk = pickHitokoto(d.pool);
+    if (hk && hk.text) html += row(ICON.bubble(C.blue), esc(hk.text), esc(hk.sub || ''), '', 'hito');
+    el.innerHTML = html;
+  }
+
+  /* ---------- 設定 ---------- */
+  var taps = [];
+  $('dateBox').addEventListener('click', function () {
+    var t = Date.now();
+    taps = taps.filter(function (x) { return t - x < 1200; });
+    taps.push(t);
+    if (taps.length >= 3) { taps = []; openSettings(); }
+  });
+  function openSettings() {
+    $('fGas').value = cfg.gas || ''; $('fTok').value = cfg.token || '';
+    $('fLat').value = cfg.lat || ''; $('fLon').value = cfg.lon || '';
+    $('fMsg').textContent = ''; $('settings').hidden = false;
+  }
+  $('fClose').addEventListener('click', function () { $('settings').hidden = true; });
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    cfg = { gas: $('fGas').value.trim(), token: $('fTok').value.trim(), lat: $('fLat').value.trim(), lon: $('fLon').value.trim() };
+    save(CFG_KEY, cfg);
+    $('settings').hidden = true;
+    loadWeather(); loadBoard();
+  });
+  $('fTest').addEventListener('click', function () {
+    var url = $('fGas').value.trim(), tok = $('fTok').value.trim(), m = $('fMsg');
+    if (!url || !tok) { m.textContent = 'URLと合言葉の両方を入れてください'; return; }
+    m.textContent = '確認中です（初回は中身を作るので1分ほどかかることがあります）';
+    fetch(url + '?action=board&token=' + encodeURIComponent(tok)).then(function (r) { return r.json(); }).then(function (j) {
+      if (j.error) { m.textContent = j.error === 'token' ? '合言葉が違います' : 'エラー: ' + j.error; return; }
+      m.textContent = 'つながりました。今日と明日の予定が' + j.events.length + '件、南武線は' + ((j.train && j.train.status) || '取得できず') + 'です';
+    }).catch(function () {
+      m.textContent = 'つながりませんでした。URLと、Apps Scriptを新バージョンでデプロイしたか確認してください';
+    });
+  });
+
+  /* ---------- 起動 ---------- */
+  renderClock(); renderWeather(); renderBoard();
+  if (!linked() && !hasPlace()) openSettings();
+  loadWeather(); loadBoard();
+
+  var lastMin = -1;
+  setInterval(function () {
+    var m = new Date().getMinutes();
+    if (m === lastMin) return;
+    lastMin = m;
+    renderClock(); renderSched(); renderList();
+    if (m % 15 === 0) loadWeather();
+    if (m % 10 === 5) loadBoard();
+    var d = new Date();
+    if (d.getHours() === 4 && d.getMinutes() === 30) location.reload(); // 毎朝、新しい版と今日の中身を読み直す
+  }, 1000);
+
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { renderClock(); loadWeather(); loadBoard(); }
+  });
+})();
+</script>
+</body>
+</html>
