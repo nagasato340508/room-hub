@@ -192,7 +192,7 @@ body.land .row.hito .main{font-size:27px}
 (function () {
   'use strict';
 
-  var BOARD_VERSION = '2026-10-31-notrain';
+  var BOARD_VERSION = '2026-10-31-film';
   var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   function $(id) { return document.getElementById(id); }
@@ -482,8 +482,9 @@ body.land .row.hito .main{font-size:27px}
     if (d.trivia && d.trivia.title) html += row(ICON.bulb(C.sub), esc(d.trivia.title), esc(d.trivia.detail));
     if (d.word && d.word.word) html += row(ICON.word(C.sub), esc(d.word.word) + '　' + esc(d.word.meaning), esc(d.word.detail));
     if (d.film && d.film.title) {
-      var fs = [d.film.director, d.film.reason].filter(Boolean).join('　') + (d.film.prime ? '　Prime Video' : '');
-      html += row(ICON.film(C.sub), '今夜の1本『' + esc(d.film.title) + '』', esc(fs));
+      var dir = (d.film.director || '') + (d.film.year ? '（' + d.film.year + '）' : '');
+      var fs = [dir, d.film.reason].filter(Boolean).join('　') + (d.film.prime ? '　Prime Video' : '');
+      html += row(ICON.film(C.sub), '『' + esc(d.film.title) + '』', esc(fs));
     }
     if (d.book && d.book.title) {
       var bm = (d.book.author ? esc(d.book.author) : '') + '『' + esc(d.book.title) + '』';
