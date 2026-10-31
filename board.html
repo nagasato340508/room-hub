@@ -53,12 +53,6 @@ body{color:var(--fg);font-family:var(--text)}
 .hour svg{width:30px;height:30px;margin:0 8px}
 .hour .v{font-family:var(--num);font-size:30px;font-weight:500}
 
-.train{display:flex;align-items:center;font-size:24px}
-.train svg{width:24px;height:24px;margin-right:10px}
-.train .n{color:var(--sub);margin-right:10px}
-.train .st{font-weight:700}
-.train.bad .st{color:var(--amber)}
-
 .sched .ev{display:flex;align-items:baseline;font-size:28px}
 .sched .ev+.ev{margin-top:6px}
 .sched .when{font-family:var(--num);font-weight:500;font-size:32px;width:78px;flex:none;color:var(--sub);margin-right:18px}
@@ -165,7 +159,6 @@ body.land .row.hito .main{font-size:27px}
   </div>
 
   <div class="hours" id="hours"></div>
-  <div class="train" id="train" hidden></div>
   <div class="sched" id="sched"></div>
   <div class="todo" id="todo" hidden></div>
   </div>
@@ -199,7 +192,7 @@ body.land .row.hito .main{font-size:27px}
 (function () {
   'use strict';
 
-  var BOARD_VERSION = '2026-10-31-fit';
+  var BOARD_VERSION = '2026-10-31-notrain';
   var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   function $(id) { return document.getElementById(id); }
@@ -355,7 +348,7 @@ body.land .row.hito .main{font-size:27px}
     renderItems();
   }
 
-  /* ---------- 予定・南武線・持ちもの・提案（Apps Script） ---------- */
+  /* ---------- 予定・やること・持ちもの・提案（Apps Script） ---------- */
   function linked() { return !!(cfg.gas && cfg.token); }
 
   var boardErr = '';
@@ -379,18 +372,8 @@ body.land .row.hito .main{font-size:27px}
       });
   }
 
-  function renderBoard() { renderTrain(); renderSched(); renderItems(); renderList(); }
+  function renderBoard() { renderSched(); renderItems(); renderList(); }
   window.addEventListener('resize', function () { setTimeout(autoFit, 50); });
-
-  function renderTrain() {
-    var st = board && board.train && board.train.status;
-    var el = $('train');
-    if (!st || st === '平常運転') { el.hidden = true; return; } // 遅れや運休があるときだけ出す
-    var ok = st === '平常運転';
-    el.className = 'train' + (ok ? '' : ' bad');
-    el.innerHTML = (ok ? ICON.check(C.blue) : ICON.warn(C.amber)) + '<span class="n">南武線</span><span class="st">' + esc(st) + '</span>';
-    el.hidden = false;
-  }
 
   function evs() {
     if (!board || !board.events) return [];
@@ -556,7 +539,7 @@ body.land .row.hito .main{font-size:27px}
     m.textContent = '確認中です（初回は中身を作るので1分ほどかかることがあります）';
     fetch(url + '?action=board&token=' + encodeURIComponent(tok)).then(function (r) { return r.json(); }).then(function (j) {
       if (j.error) { m.textContent = j.error === 'token' ? '合言葉が違います' : 'エラー: ' + j.error; return; }
-      m.textContent = 'つながりました。今日と明日の予定が' + j.events.length + '件、南武線は' + ((j.train && j.train.status) || '取得できず') + 'です';
+      m.textContent = 'つながりました。今日と明日の予定が' + j.events.length + '件、やることが' + ((j.tasks && j.tasks.length) || 0) + '件あります';
     }).catch(function () {
       m.textContent = 'つながりませんでした。URLと、Apps Scriptを新バージョンでデプロイしたか確認してください';
     });
