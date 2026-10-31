@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="玄関ボード">
-<meta name="theme-color" content="#0b0f0e">
+<meta name="theme-color" content="#fafaf8">
 <title>玄関ボード</title>
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" href="icon-192.png">
@@ -14,10 +14,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
 <style>
-/* iPad mini 3（縦 768×1024）に合わせた1画面。古いSafariでも崩れないよう、flexのgapは使わずmarginで間をあける */
+/* iPad mini 3に合わせた1画面（縦 768×1024／横 1024×768）。白い本体に合わせた白ベース。
+   古いSafariでも崩れないよう、flexのgapは使わずmarginで間をあける */
 :root{
-  --bg:#0B0F0E; --card:#131918; --line:#1F2725; --chip:#2A3431;
-  --fg:#E1E7E5; --sub:#8E9A96; --blue:#86A9EE; --amber:#E3A863;
+  --bg:#FAFAF8; --card:#EEF0ED; --line:#DCE1DE; --chip:#C9D0CC; --dot:#B3BCB8;
+  --fg:#18201D; --sub:#5C6864; --blue:#2C5FC4; --amber:#A8620C;
   --num:"Barlow Condensed","Roboto Condensed",sans-serif;
   --text:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
 }
@@ -27,8 +28,10 @@ body{color:var(--fg);font-family:var(--text)}
 [hidden]{display:none!important}
 
 #stage{position:absolute;left:0;top:0;width:768px;height:1024px;overflow:hidden;padding:28px 40px;display:flex;flex-direction:column;-webkit-transform-origin:0 0;transform-origin:0 0;background:var(--bg)}
-#stage>*{flex:none}
-#stage>*+*{margin-top:12px}
+#colA{flex:none;display:flex;flex-direction:column}
+#colA>*{flex:none}
+#colA>*+*{margin-top:12px}
+#colB{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:12px}
 
 .head{display:flex;align-items:flex-end;justify-content:space-between}
 .time{font-family:var(--num);font-weight:600;font-size:108px;line-height:.9;letter-spacing:-1px}
@@ -70,7 +73,7 @@ body{color:var(--fg);font-family:var(--text)}
 .todo .lb{font-size:20px;color:var(--sub);margin-bottom:8px}
 .todo .it{display:flex;align-items:center;font-size:24px;line-height:1.35}
 .todo .it+.it{margin-top:8px}
-.todo .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid #3A4542;margin-right:12px}
+.todo .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid var(--dot);margin-right:12px}
 .todo .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
 .todo .due{flex:none;margin-left:auto;padding-left:10px;font-family:var(--num);font-size:22px;color:var(--sub)}
 .todo .it.hot .dot{border-color:var(--amber)}
@@ -81,7 +84,7 @@ body{color:var(--fg);font-family:var(--text)}
 .todo .it.daily .dot{border-color:var(--chip)}
 .todo .empty{font-size:20px;color:var(--sub)}
 
-.list{border-top:1px solid var(--line);padding-top:12px;flex:1 1 auto!important;min-height:0;overflow:hidden}
+.list{border-top:1px solid var(--line);padding-top:12px;flex:1 1 auto;min-height:0;overflow:hidden}
 .row{display:flex;align-items:center}
 .row+.row{margin-top:10px}
 .row .ico{width:52px;height:52px;border-radius:14px;background:var(--card);flex:none;display:flex;align-items:center;justify-content:center;margin-right:18px}
@@ -89,30 +92,52 @@ body{color:var(--fg);font-family:var(--text)}
 .row .txt{flex:1 1 auto;min-width:0}
 .row .main{font-size:28px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .sub{font-size:21px;line-height:1.4;color:var(--sub);overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-.row .sale{display:inline-block;vertical-align:middle;font-size:18px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--amber);color:var(--bg);margin-left:12px;position:relative;top:-2px}
+.row .sale{display:inline-block;vertical-align:middle;font-size:18px;font-weight:700;padding:2px 10px;border-radius:999px;background:var(--amber);color:#fff;margin-left:12px;position:relative;top:-2px}
 .row.hito .main{color:var(--blue);white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .wait{font-size:22px;color:var(--sub);line-height:1.6}
 
 #dim{position:absolute;left:0;top:0;right:0;bottom:0;background:#000;opacity:0;pointer-events:none;-webkit-transition:opacity 2s;transition:opacity 2s;margin:0!important}
-#dim.on{opacity:.55}
+#dim.on{opacity:.6}
 
-#settings{position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(11,15,14,.96);display:flex;align-items:center;justify-content:center;margin:0!important;z-index:5}
+#settings{position:absolute;left:0;top:0;right:0;bottom:0;background:rgba(250,250,248,.97);display:flex;align-items:center;justify-content:center;margin:0!important;z-index:5}
 .sheet{width:600px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px}
 .sheet h2{margin:0 0 8px;font-size:26px}
 .sheet p{margin:0 0 16px;font-size:18px;color:var(--sub);line-height:1.6}
 .sheet label{display:block;font-size:18px;color:var(--sub);margin-top:14px}
-.sheet input{display:block;width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--chip);color:var(--fg);font:inherit;font-size:20px;padding:10px 12px;border-radius:8px;-webkit-appearance:none}
+.sheet input{display:block;width:100%;margin-top:6px;background:#fff;border:1px solid var(--chip);color:var(--fg);font:inherit;font-size:20px;padding:10px 12px;border-radius:8px;-webkit-appearance:none}
 .sheet .two{display:flex}
 .sheet .two label{flex:1 1 0}
 .sheet .two label+label{margin-left:12px}
 .sheet .btns{display:flex;justify-content:flex-end;margin-top:22px}
 .sheet button{font:inherit;font-size:20px;padding:12px 22px;border-radius:10px;border:0;background:var(--chip);color:var(--fg);margin-left:10px;-webkit-appearance:none}
-.sheet button.primary{background:var(--blue);color:var(--bg);font-weight:700}
+.sheet button.primary{background:var(--blue);color:#fff;font-weight:700}
+
+/* 横向き：左に時計・天気・予定・やること、右に提案 */
+body.land #stage{width:1024px;height:768px;flex-direction:row}
+body.land #colA{width:560px}
+body.land .todo{padding:14px 20px}
+body.land .todo .col+.col{margin-left:18px}
+body.land .todo .it{font-size:22px}
+body.land .todo .dot{margin-right:10px}
+body.land .todo .due{font-size:20px;padding-left:6px}
+body.land #colB{margin-top:0;margin-left:30px;padding-left:30px;border-left:1px solid var(--line)}
+body.land .list{border-top:0;padding-top:4px}
+body.land .hour{flex-direction:column;padding:8px 0}
+body.land .hour svg{margin:6px 0}
+body.land .umb .t{font-size:36px}
+body.land .umb .s{font-size:22px}
+body.land .sched .ev{font-size:26px}
+body.land .row+.row{margin-top:14px}
+body.land .row .ico{width:46px;height:46px;margin-right:14px}
+body.land .row .ico svg{width:26px;height:26px}
+body.land .row .main{font-size:24px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+body.land .row .sub{font-size:19px}
 .sheet .msg{font-size:18px;min-height:1.4em;margin-top:14px;color:var(--sub)}
 </style>
 </head>
 <body>
 <div id="stage">
+  <div id="colA">
   <div class="head">
     <div class="time" id="time">--:--</div>
     <div class="date" id="dateBox"><div class="md" id="md"></div><div class="wd" id="wd"></div></div>
@@ -127,7 +152,10 @@ body{color:var(--fg);font-family:var(--text)}
   <div class="train" id="train" hidden></div>
   <div class="sched" id="sched"></div>
   <div class="todo" id="todo" hidden></div>
+  </div>
+  <div id="colB">
   <div class="list" id="list"></div>
+  </div>
 
   <div id="dim"></div>
 
@@ -175,8 +203,11 @@ body{color:var(--fg);font-family:var(--text)}
   /* ---------- 画面を端末の大きさに合わせる ---------- */
   function fit() {
     var w = window.innerWidth, h = window.innerHeight;
-    var s = Math.min(w / 768, h / 1024);
-    var t = 'translate(' + ((w - 768 * s) / 2) + 'px,' + ((h - 1024 * s) / 2) + 'px) scale(' + s + ')';
+    var land = w > h;
+    document.body.className = land ? 'land' : '';
+    var W = land ? 1024 : 768, H = land ? 768 : 1024;
+    var s = Math.min(w / W, h / H);
+    var t = 'translate(' + ((w - W * s) / 2) + 'px,' + ((h - H * s) / 2) + 'px) scale(' + s + ')';
     $('stage').style.webkitTransform = t;
     $('stage').style.transform = t;
   }
@@ -202,7 +233,7 @@ body{color:var(--fg);font-family:var(--text)}
     book: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M12 6c-2-1.5-5-2-8-1.5V19c3-.5 6 0 8 1.5"></path><path d="M12 6c2-1.5 5-2 8-1.5V19c-3-.5-6 0-8 1.5"></path><path d="M12 6v14.5"></path></svg>'; },
     bubble: function (c) { return '<svg ' + S + ' stroke="' + c + '"><path d="M4 5h16v11H10l-5 4v-4H4z"></path></svg>'; }
   };
-  var C = { blue: '#86A9EE', amber: '#E3A863', sub: '#8E9A96' };
+  var C = { blue: '#2C5FC4', amber: '#C27712', sub: '#5C6864' };
 
   function kind(code) {
     if (code <= 1) return 'sun';
