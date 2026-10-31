@@ -183,6 +183,7 @@ body.land .row .sub{font-size:19px}
 (function () {
   'use strict';
 
+  var BOARD_VERSION = '2026-10-31-white';
   var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   function $(id) { return document.getElementById(id); }
@@ -539,9 +540,22 @@ body.land .row .sub{font-size:19px}
     renderClock(); renderSched(); renderList();
     if (m % 15 === 0) loadWeather();
     if (m % 10 === 5) loadBoard();
+    if (m % 10 === 7) checkUpdate();
     var d = new Date();
     if (d.getHours() === 4 && d.getMinutes() === 30) location.reload(); // 毎朝、新しい版と今日の中身を読み直す
   }, 1000);
+
+  // GitHubに新しい版が上がったら、自動で読み直す
+  function checkUpdate() {
+    fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var m = t.match(/BOARD_VERSION = '([^']+)'/);
+        if (m && m[1] !== BOARD_VERSION) location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+      })
+      .catch(function () {});
+  }
+  setTimeout(checkUpdate, 15000);
 
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) { renderClock(); loadWeather(); loadBoard(); }
