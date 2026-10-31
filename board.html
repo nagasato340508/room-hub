@@ -64,10 +64,22 @@ body{color:var(--fg);font-family:var(--text)}
 .sched .tag{font-size:20px;color:var(--sub);margin-right:12px;flex:none}
 .sched .none{font-size:24px;color:var(--sub)}
 
-.items{display:flex;align-items:center;flex-wrap:wrap}
-.items .lb{font-size:20px;color:var(--sub);margin-right:14px}
-.chip{font-size:24px;padding:6px 14px;border-radius:999px;border:1px solid var(--chip);margin:0 10px 0 0}
-.chip.on{background:var(--blue);border-color:var(--blue);color:var(--bg);font-weight:700}
+.todo{background:var(--card);border-radius:20px;padding:16px 22px;display:flex}
+.todo .col{flex:1 1 0;min-width:0}
+.todo .col+.col{margin-left:24px}
+.todo .lb{font-size:20px;color:var(--sub);margin-bottom:8px}
+.todo .it{display:flex;align-items:center;font-size:24px;line-height:1.35}
+.todo .it+.it{margin-top:8px}
+.todo .dot{flex:none;width:18px;height:18px;border-radius:50%;border:2px solid #3A4542;margin-right:12px}
+.todo .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.todo .due{flex:none;margin-left:auto;padding-left:10px;font-family:var(--num);font-size:22px;color:var(--sub)}
+.todo .it.hot .dot{border-color:var(--amber)}
+.todo .it.hot .due{color:var(--amber);font-weight:700;font-family:var(--text);font-size:18px}
+.todo .it.on{color:var(--blue);font-weight:700}
+.todo .it.on .dot{background:var(--blue);border-color:var(--blue)}
+.todo .it.daily{color:var(--sub)}
+.todo .it.daily .dot{border-color:var(--chip)}
+.todo .empty{font-size:20px;color:var(--sub)}
 
 .list{border-top:1px solid var(--line);padding-top:12px;flex:1 1 auto!important;min-height:0;overflow:hidden}
 .row{display:flex;align-items:center}
@@ -114,7 +126,7 @@ body{color:var(--fg);font-family:var(--text)}
   <div class="hours" id="hours"></div>
   <div class="train" id="train" hidden></div>
   <div class="sched" id="sched"></div>
-  <div class="items" id="items" hidden></div>
+  <div class="todo" id="todo" hidden></div>
   <div class="list" id="list"></div>
 
   <div id="dim"></div>
@@ -324,7 +336,7 @@ body{color:var(--fg);font-family:var(--text)}
   function renderTrain() {
     var st = board && board.train && board.train.status;
     var el = $('train');
-    if (!st) { el.hidden = true; return; }
+    if (!st || st === '平常運転') { el.hidden = true; return; } // 遅れや運休があるときだけ出す
     var ok = st === '平常運転';
     el.className = 'train' + (ok ? '' : ' bad');
     el.innerHTML = (ok ? ICON.check(C.blue) : ICON.warn(C.amber)) + '<span class="n">南武線</span><span class="st">' + esc(st) + '</span>';
@@ -371,16 +383,39 @@ body{color:var(--fg);font-family:var(--text)}
     }).join('');
   }
 
+  function ymd(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+
   function renderItems() {
-    var el = $('items');
-    var chips = [];
-    if (rainLevel === 2) chips.push('<span class="chip on">傘</span>');
-    else if (rainLevel === 1) chips.push('<span class="chip on">折りたたみ傘</span>');
-    var night = new Date().getHours() >= 19;
-    var items = (!night && board && board.daily && board.daily.items) || [];
-    items.forEach(function (x) { chips.push('<span class="chip">' + esc(x) + '</span>'); });
-    if (!chips.length) { el.hidden = true; return; }
-    el.innerHTML = '<span class="lb">' + (night ? '明日の持ちもの' : '持ちもの') + '</span>' + chips.join('');
+    var el = $('todo');
+    if (!board) { el.hidden = true; return; }
+    var now = new Date(), today = ymd(now);
+    var night = now.getHours() >= 19;
+
+    // やること（期限の近い順に3つまで）
+    var tasks = (board.tasks || []).slice(0, 3);
+    var left = '<div class="lb">やること</div>';
+    if (!tasks.length) left += '<div class="empty">今日のやることはありません</div>';
+    tasks.forEach(function (t) {
+      var due = '', hot = false;
+      if (t.due) {
+        if (t.due < today) { due = '期限切れ'; hot = true; }
+        else if (t.due === today) { due = '今日'; hot = true; }
+        else { var p = t.due.split('-'); due = Number(p[1]) + '/' + Number(p[2]); }
+      }
+      left += '<div class="it' + (hot ? ' hot' : '') + '"><span class="dot"></span><span class="tt">' + esc(t.title) + '</span>' +
+        (due ? '<span class="due">' + due + '</span>' : '') + '</div>';
+    });
+
+    // 持ちもの（その日だけのもの → 毎日のもの）
+    var right = '<div class="lb">' + (night ? '明日の持ちもの' : '持ちもの') + '</div>';
+    if (rainLevel === 2) right += '<div class="it on"><span class="dot"></span><span class="tt">傘</span></div>';
+    else if (rainLevel === 1) right += '<div class="it on"><span class="dot"></span><span class="tt">折りたたみ傘</span></div>';
+    var items = (!night && board.daily && board.daily.items) || [];
+    items.slice(0, 2).forEach(function (x) { right += '<div class="it"><span class="dot"></span><span class="tt">' + esc(x) + '</span></div>'; });
+    var every = board.everyday || [];
+    if (every.length) right += '<div class="it daily"><span class="dot"></span><span class="tt">' + esc(every.join('・')) + '</span></div>';
+
+    el.innerHTML = '<div class="col">' + left + '</div><div class="col">' + right + '</div>';
     el.hidden = false;
   }
 
