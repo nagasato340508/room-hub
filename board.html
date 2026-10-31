@@ -66,6 +66,8 @@ body{color:var(--fg);font-family:var(--text)}
 .sched .dep{font-size:20px;color:var(--sub);margin-left:18px;flex:none}
 .sched .tag{font-size:20px;color:var(--sub);margin-right:12px;flex:none}
 .sched .none{font-size:24px;color:var(--sub)}
+.sched .when.jp{font-family:var(--text);font-size:20px;font-weight:700}
+.sched .when.now{color:var(--blue)}
 
 .todo{background:var(--card);border-radius:20px;padding:16px 22px;display:flex}
 .todo .col{flex:1 1 0;min-width:0}
@@ -112,27 +114,41 @@ body{color:var(--fg);font-family:var(--text)}
 .sheet button{font:inherit;font-size:20px;padding:12px 22px;border-radius:10px;border:0;background:var(--chip);color:var(--fg);margin-left:10px;-webkit-appearance:none}
 .sheet button.primary{background:var(--blue);color:#fff;font-weight:700}
 
-/* 横向き：左に時計・天気・予定・やること、右に提案 */
-body.land #stage{width:1024px;height:768px;flex-direction:row}
+/* 横向き：左に時計・天気・予定・やること、右に提案。離れて読めるよう文字は大きめ */
+body.land #stage{width:1024px;height:768px;flex-direction:row;padding:24px 36px}
 body.land #colA{width:560px}
+body.land #colB{margin-top:0;margin-left:28px;padding-left:28px;border-left:1px solid var(--line)}
+body.land .time{font-size:124px}
+body.land .date .md{font-size:28px}
+body.land .date .wd{font-size:38px}
+body.land .umb .ico,body.land .umb .ico svg{width:56px;height:56px}
+body.land .umb .t{font-size:42px}
+body.land .umb .s{font-size:24px}
+body.land .hour{flex-direction:column;padding:8px 0}
+body.land .hour .h{font-size:22px}
+body.land .hour svg{width:34px;height:34px;margin:6px 0}
+body.land .hour .v{font-size:36px}
+body.land .sched .ev{font-size:30px}
+body.land .sched .when{font-size:34px;width:84px}
+body.land .sched .when.jp{font-size:22px}
+body.land .sched .dep,body.land .sched .tag{font-size:22px}
+body.land .sched .ev:nth-child(n+3){display:none}
+body.land .sched .none{font-size:26px}
 body.land .todo{padding:14px 20px}
 body.land .todo .col+.col{margin-left:18px}
-body.land .todo .it{font-size:22px}
-body.land .todo .dot{margin-right:10px}
-body.land .todo .due{font-size:20px;padding-left:6px}
-body.land #colB{margin-top:0;margin-left:30px;padding-left:30px;border-left:1px solid var(--line)}
+body.land .todo .lb{font-size:22px}
+body.land .todo .it{font-size:25px}
+body.land .todo .dot{width:20px;height:20px;margin-right:10px}
+body.land .todo .due{font-size:22px;padding-left:6px}
+body.land .todo .it.hot .due{font-size:20px}
+body.land .todo .empty{font-size:22px}
 body.land .list{border-top:0;padding-top:4px}
-body.land .hour{flex-direction:column;padding:8px 0}
-body.land .hour svg{margin:6px 0}
-body.land .umb .t{font-size:36px}
-body.land .umb .s{font-size:22px}
-body.land .sched .ev{font-size:26px}
-body.land .row+.row{margin-top:14px}
-body.land .row .ico{width:46px;height:46px;margin-right:14px}
-body.land .row .ico svg{width:26px;height:26px}
-body.land .row .main{font-size:24px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-body.land .row .sub{font-size:19px}
-.sheet .msg{font-size:18px;min-height:1.4em;margin-top:14px;color:var(--sub)}
+body.land .row+.row{margin-top:16px}
+body.land .row .ico{width:48px;height:48px;margin-right:14px}
+body.land .row .ico svg{width:28px;height:28px}
+body.land .row .main{font-size:27px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+body.land .row .sub{font-size:21px;-webkit-line-clamp:1}
+body.land .row.hito .main{font-size:27px}
 </style>
 </head>
 <body>
@@ -183,7 +199,7 @@ body.land .row .sub{font-size:19px}
 (function () {
   'use strict';
 
-  var BOARD_VERSION = '2026-10-31-white';
+  var BOARD_VERSION = '2026-10-31-big';
   var CFG_KEY = 'genkan.cfg', CACHE_KEY = 'genkan.cache';
   var WD = ['日', '月', '火', '水', '木', '金', '土'];
   function $(id) { return document.getElementById(id); }
@@ -408,9 +424,9 @@ body.land .row .sub{font-size:19px}
     }
     if (!today.length) { el.innerHTML = '<div class="none">' + (label ? '明日の予定はありません' : '今日の予定はありません') + '</div>'; return; }
     el.innerHTML = today.slice(0, 3).map(function (e) {
-      var dep = label ? '' : depart(e);
+      var dep = (label || e.s <= now) ? '' : depart(e);
       return '<div class="ev">' + (label ? '<span class="tag">' + label + '</span>' : '') +
-        '<span class="when">' + (e.allDay ? '終日' : (e.s <= now ? '進行中' : hm(e.s))) + '</span>' +
+        (e.allDay ? '<span class="when jp">終日</span>' : e.s <= now ? '<span class="when jp now">進行中</span>' : '<span class="when">' + hm(e.s) + '</span>') +
         '<span class="ttl">' + esc(e.title) + '</span>' + (dep ? '<span class="dep">' + dep + '</span>' : '') + '</div>';
     }).join('');
   }
